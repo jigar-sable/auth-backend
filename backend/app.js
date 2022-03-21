@@ -21,7 +21,6 @@ const user = require('./routes/userRoute');
 
 app.use('/api/v1', user);
 
-
 // error middleware
 app.use(errorMiddleware);
 

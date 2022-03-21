@@ -3,6 +3,7 @@ const User = require('../models/userModel');
 const ErrorHandler = require('../utils/errorHandler');
 const sendCookie = require('../utils/sendCookie');
 const sendEmail = require('../utils/sendMail');
+const crypto = require('crypto');
 
 // Register User
 exports.registerUser = catchAsync(async (req, res, next) => {
@@ -98,4 +99,26 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
         await user.save({ validateBeforeSave: false });
         return next(new ErrorHandler(error.message, 500))
     }
-})
+});
+
+// Reset Password
+exports.resetPassword = catchAsync(async (req, res, next) => {
+
+    const resetPasswordToken = crypto.createHash("sha256").update(req.params.token).digest("hex");
+
+    const user = await User.findOne({
+        resetPasswordToken,
+        resetPasswordExpiry: { $gt: Date.now() }
+    });
+
+    if (!user) {
+        return next(new ErrorHandler("User Not Found", 404));
+    }
+
+    user.password = req.body.password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+
+    await user.save();
+    sendCookie(user, 200, res);
+});
