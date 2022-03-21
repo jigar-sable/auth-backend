@@ -3,6 +3,7 @@ const User = require('../models/userModel');
 const ErrorHandler = require('../utils/errorHandler');
 const sendCookie = require('../utils/sendCookie');
 
+// Register User
 exports.registerUser = catchAsync(async (req, res, next) => {
 
     const { name, email, password } = req.body;
@@ -16,6 +17,7 @@ exports.registerUser = catchAsync(async (req, res, next) => {
     sendCookie(user, 201, res);
 });
 
+// Login User
 exports.loginUser = catchAsync(async (req, res, next) => {
 
     const { email, password } = req.body;
@@ -45,5 +47,16 @@ exports.logoutUser = catchAsync(async (req, res, next) => {
     res.status(200).json({
         success: true,
         message: "Logged Out",
+    });
+});
+
+// Get User Details --Logged In User
+exports.getAccountDetails = catchAsync(async (req, res, next) => {
+
+    const user = await User.findById(req.user._id);
+
+    res.status(200).json({
+        success: true,
+        user,
     });
 });
