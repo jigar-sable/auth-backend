@@ -2,6 +2,7 @@ const catchAsync = require('../middlewares/catchAsync');
 const User = require('../models/userModel');
 const ErrorHandler = require('../utils/errorHandler');
 const sendCookie = require('../utils/sendCookie');
+const sendEmail = require('../utils/sendMail');
 
 // Register User
 exports.registerUser = catchAsync(async (req, res, next) => {
@@ -60,3 +61,41 @@ exports.getAccountDetails = catchAsync(async (req, res, next) => {
         user,
     });
 });
+
+// Forgot Password
+exports.forgotPassword = catchAsync(async (req, res, next) => {
+
+    const user = await User.findOne({ email: req.body.email });
+
+    if (!user) {
+        return next(new ErrorHandler("User Not Found", 404));
+    }
+
+    const resetPasswordToken = await user.getResetPasswordToken()
+
+    await user.save();
+
+    const resetPasswordUrl = `${req.protocol}://${req.get("host")}/password/reset/${resetPasswordToken}`;
+
+    const message = `Your password reset token is : \n\n ${resetPasswordUrl}`;
+
+    try {
+        await sendEmail({
+            email: user.email,
+            subject: "Reset Password",
+            message
+        });
+
+        res.status(200).json({
+            success: true,
+            message: `Email sent to ${user.email}`,
+        });
+
+    } catch (error) {
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpire = undefined;
+
+        await user.save({ validateBeforeSave: false });
+        return next(new ErrorHandler(error.message, 500))
+    }
+})
